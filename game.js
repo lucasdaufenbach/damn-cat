@@ -1,6 +1,8 @@
 
 const tela = document.getElementById("game");
 const contexto = tela.getContext("2d");
+const botaoReiniciar = document.getElementById("restart-btn");
+const botaoNext = document.getElementById("next-btn");
 
 // Dimensões dos elementos
 const ARVORE_LARGURA = 40;
@@ -36,7 +38,15 @@ let tempoRestante = 10;
 let jogoAcabou = false;
 let faseCompleta = false;
 
-const GALHOS_POR_FASE = 50;
+const GALHOS_POR_FASE = 5;
+
+function mostrarBotaoReiniciar(visivel) {
+    botaoReiniciar.style.display = visivel ? "block" : "none";
+}
+
+function mostrarBotaoNext(visivel) {
+    botaoNext.style.display = visivel ? "block" : "none";
+}
 
 
 function centralizarElementos() {
@@ -76,6 +86,21 @@ document.addEventListener("keydown", (evento) => {
     if (evento.key === "ArrowRight") moverLenhador("direita");
 });
 
+botaoReiniciar.addEventListener("click", reiniciarJogo);
+botaoNext.addEventListener("click", proximaFase);
+
+// Suporte a toque/cliques: divide a tela em dois lados para escolher o lado do lenhador
+tela.addEventListener("pointerdown", (evento) => {
+    // evita que o toque gere scroll/zoom em mobile
+    evento.preventDefault();
+
+    if (jogoAcabou) return; // no game over, use the restart button
+    if (faseCompleta) return; // próxima fase via botão
+
+    const lado = evento.clientX < tela.width / 2 ? "esquerda" : "direita";
+    moverLenhador(lado);
+}, { passive: false });
+
 
 function moverLenhador(lado) {
     lenhador.lado = lado;
@@ -93,6 +118,7 @@ function cortar() {
     let galhoBaixo = galhos.pop();
     if (galhoBaixo === lenhador.lado) {
         jogoAcabou = true;
+        mostrarBotaoReiniciar(true);
         return;
     }
     galhos.unshift(galhoAleatorio());
@@ -103,6 +129,7 @@ function cortar() {
     if (tempoRestante > tempoMaximo) tempoRestante = tempoMaximo;
     if (pontosFase >= GALHOS_POR_FASE) {
         faseCompleta = true;
+        mostrarBotaoNext(true);
     }
 }
 
@@ -113,6 +140,7 @@ function proximaFase() {
     faseCompleta = false;
     tempoMaximo = Math.max(3, tempoMaximo - 1);
     tempoRestante = tempoMaximo;
+    mostrarBotaoNext(false);
 }
 
 
@@ -125,6 +153,8 @@ function reiniciarJogo() {
     jogoAcabou = false;
     faseCompleta = false;
     galhos = ["esquerda","direita","esquerda","esquerda","direita"];
+    mostrarBotaoReiniciar(false);
+    mostrarBotaoNext(false);
 }
 
 
@@ -134,6 +164,7 @@ function atualizar() {
         tempoRestante -= 0.016;
         if (tempoRestante <= 0) {
             jogoAcabou = true;
+            mostrarBotaoReiniciar(true);
         }
     }
 }
@@ -183,8 +214,6 @@ function desenharGameOver() {
     contexto.fillStyle = "black";
     contexto.font = "40px Arial";
     contexto.fillText("FIM DE JOGO", 80, 300);
-    contexto.font = "20px Arial";
-    contexto.fillText("Aperte R para reiniciar", 90, 340);
 }
 
 
@@ -192,8 +221,6 @@ function desenharFaseCompleta() {
     contexto.fillStyle = "black";
     contexto.font = "36px Arial";
     contexto.fillText("FASE COMPLETA!", 70, 280);
-    contexto.font = "20px Arial";
-    contexto.fillText("Aperte ESPAÇO", 130, 320);
 }
 
 

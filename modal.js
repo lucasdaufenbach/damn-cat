@@ -8,7 +8,9 @@
       display: none;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.6);
+      background: transparent;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       z-index: 5;
     }
     .modal-jogo.visivel { display: flex; }
@@ -26,6 +28,56 @@
       margin: 0 0 8px;
       font-size: 28px;
       color: #222;
+    }
+    .modal-jogo__imagem {
+      display: none;
+      width: 160px;
+      max-width: 80vw;
+      height: auto;
+      margin: 0 auto 12px;
+    }
+    /* Variante para modal de vitória (herói ocupa quase toda a tela) */
+    .modal-jogo--win .modal-jogo__caixa {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 100vw;
+      width: 100%;
+    }
+    .modal-jogo--win .modal-jogo__imagem {
+      display: block;
+      width: 90vw;
+      max-width: 520px;
+      max-height: 70vh;
+      object-fit: contain;
+      margin: 0 auto;
+      border-radius: 14px;
+    }
+    .modal-jogo--win .modal-jogo__titulo,
+    .modal-jogo--win .modal-jogo__subtitulo {
+      display: none;
+    }
+    .modal-jogo--win .modal-jogo__caixa {
+      position: relative;
+    }
+    .modal-jogo--win .modal-jogo__acoes {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 80%; 
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 16px;
+      pointer-events: none;
+    }
+    .modal-jogo--win .modal-jogo__acoes .modal-jogo__botao {
+      pointer-events: auto;
     }
     .modal-jogo__subtitulo {
       margin: 0 0 16px;
@@ -68,18 +120,42 @@
   const subtitle = document.createElement("p");
   subtitle.className = "modal-jogo__subtitulo";
 
+  const imagem = document.createElement("img");
+  imagem.className = "modal-jogo__imagem";
+  imagem.alt = "Ilustração";
+
   const actions = document.createElement("div");
   actions.className = "modal-jogo__acoes";
 
   box.appendChild(title);
   box.appendChild(subtitle);
+  box.appendChild(imagem);
   box.appendChild(actions);
   modal.appendChild(box);
   document.body.appendChild(modal);
 
-  function abrirModal({ tituloModal, subtituloModal = "", botoes }) {
+  function abrirModal({ tituloModal, subtituloModal = "", botoes, imagemSrc = null, modoWin = false }) {
     title.textContent = tituloModal;
     subtitle.textContent = subtituloModal;
+
+    // controla variante de vitória
+    if (modoWin) {
+      modal.classList.add("modal-jogo--win");
+    } else {
+      modal.classList.remove("modal-jogo--win");
+    }
+
+    // oculta título/subtítulo se vazios
+    title.style.display = tituloModal ? "block" : "none";
+    subtitle.style.display = subtituloModal ? "block" : "none";
+
+    if (imagemSrc) {
+      imagem.src = imagemSrc;
+      imagem.style.display = "block";
+    } else {
+      imagem.removeAttribute("src");
+      imagem.style.display = "none";
+    }
 
     // clear previous buttons
     while (actions.firstChild) actions.removeChild(actions.firstChild);
@@ -114,8 +190,10 @@
     },
     mostrarFimDeFase(aoProximaFase) {
       abrirModal({
-        tituloModal: "FASE COMPLETA!",
+        tituloModal: "",
         subtituloModal: "",
+        imagemSrc: "img/heroi.webp",
+        modoWin: true,
         botoes: [
           { rotulo: "Próxima fase", variante: "primario", aoClicar: aoProximaFase }
         ]

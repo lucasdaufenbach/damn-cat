@@ -3,19 +3,48 @@ const tela = document.getElementById("game");
 const contexto = tela.getContext("2d");
 
 // Dimensões dos elementos
-const ARVORE_LARGURA = 40;
-const GALHO_LARGURA = 40;
-const GALHO_ALTURA = 20;
-const GALHO_OFFSET_X = 40;
-const GALHO_ESPACAMENTO = 70; // distância vertical entre galhos renderizados
+const ARVORE_LARGURA = 100; // 6x mais largo para o tronco
+const GALHO_LARGURA = 200;  // mais largo para destacar
+const GALHO_ALTURA = 80;   // mais alto para visibilidade
+const GALHO_OFFSET_X = 200; // afasta mais para evitar sobrepor o tronco
+const GALHO_ESPACAMENTO = 160; // distância vertical maior entre galhos renderizados
 const MAX_GALHOS_VISIVEIS = 8; // quantos galhos mostramos no "viewport"
-const LENHADOR_LARGURA = 120; // 3x maior
-const LENHADOR_ALTURA = 120;  // 3x maior
+const LENHADOR_LARGURA = 140;
+const LENHADOR_ALTURA = 160;  
 const LENHADOR_Y_OFFSET = 60; // distância do lenhador ao chão
+// Dimensões do gato (definidas manualmente em relação ao galho)
+const GATO_LARGURA = 200;
+const GATO_ALTURA = 120;
+const GATO_OFFSET_X = (GALHO_LARGURA - GATO_LARGURA) / 2;
+const GATO_OFFSET_Y = -(GATO_ALTURA - GALHO_ALTURA) / 2;
 const COR_GALHO = "green";
 const COR_GALHO_FINAL = "#ffd166";
-const COR_GALHO_FINAL_BORDA = "#cc9a1b";
 const TEMPO_FRAME_GOLPE = 100; // ms por frame do golpe
+const IMG_TRONCO_SRC = "img/tronco.webp";
+const IMG_GALHO_SRC = "img/galho.webp";
+const IMG_GATO_SRC = "img/gato.webp";
+
+// Textura do tronco
+const imgTronco = new Image();
+let troncoCarregado = false;
+let padraoTronco = null;
+imgTronco.onload = () => {
+    troncoCarregado = true;
+    padraoTronco = contexto.createPattern(imgTronco, "repeat");
+};
+imgTronco.src = IMG_TRONCO_SRC;
+
+// Textura do galho
+const imgGalho = new Image();
+let galhoCarregado = false;
+imgGalho.onload = () => { galhoCarregado = true; };
+imgGalho.src = IMG_GALHO_SRC;
+
+// Textura do gato no último galho
+const imgGato = new Image();
+let gatoCarregado = false;
+imgGato.onload = () => { gatoCarregado = true; };
+imgGato.src = IMG_GATO_SRC;
 
 // Posições calculadas dinamicamente
 let ARVORE_X = 0;
@@ -46,7 +75,7 @@ let tempoRestante = 10;
 let jogoAcabou = false;
 let faseCompleta = false;
 
-const GALHOS_POR_FASE = 20;
+const GALHOS_POR_FASE = 3;
 
 function resetGalhos() {
     galhos = [];
@@ -195,8 +224,15 @@ function atualizar() {
 
 
 function desenharArvore() {
-    contexto.fillStyle = "brown";
-    contexto.fillRect(ARVORE_X, 0, ARVORE_LARGURA, tela.height);
+    if (troncoCarregado && imgTronco.naturalWidth > 0 && imgTronco.naturalHeight > 0) {
+        // Repete o tronco para ocupar toda a altura
+        for (let y = 0; y < tela.height; y += imgTronco.naturalHeight) {
+            contexto.drawImage(imgTronco, ARVORE_X, y, ARVORE_LARGURA, imgTronco.naturalHeight);
+        }
+    } else {
+        contexto.fillStyle = padraoTronco || "brown";
+        contexto.fillRect(ARVORE_X, 0, ARVORE_LARGURA, tela.height);
+    }
 }
 
 
@@ -209,13 +245,42 @@ function desenharGalhos() {
         const idxNaTela = i - startIndex; // 0 é o mais baixo visível
         const y = tela.height - margemBase - (visiveis - idxNaTela) * GALHO_ESPACAMENTO;
         const isUltimo = i === catIndex; // galho especial (gato)
-        const x = galhos[i] === "esquerda" ? GALHO_X_ESQUERDA : GALHO_X_DIREITA;
-        contexto.fillStyle = isUltimo ? COR_GALHO_FINAL : COR_GALHO;
-        contexto.fillRect(x, y, GALHO_LARGURA, GALHO_ALTURA);
-        if (isUltimo) {
-            contexto.strokeStyle = COR_GALHO_FINAL_BORDA;
-            contexto.lineWidth = 2;
-            contexto.strokeRect(x - 2, y - 2, GALHO_LARGURA + 4, GALHO_ALTURA + 4);
+        const ladoGalho = galhos[i];
+        const x = ladoGalho === "esquerda" ? GALHO_X_ESQUERDA : GALHO_X_DIREITA;
+
+        const deveDesenharGalho = !(isUltimo && gatoCarregado);
+
+        if (deveDesenharGalho) {
+            if (galhoCarregado) {
+                contexto.save();
+                // Assume a textura aponta para a direita; espelha apenas para a esquerda
+                if (ladoGalho === "esquerda") {
+                    contexto.translate(x + GALHO_LARGURA, y);
+                    contexto.scale(-1, 1);
+                    contexto.drawImage(imgGalho, 0, 0, GALHO_LARGURA, GALHO_ALTURA);
+                } else {
+                    contexto.drawImage(imgGalho, x, y, GALHO_LARGURA, GALHO_ALTURA);
+                }
+                contexto.restore();
+            } else {
+                contexto.fillStyle = isUltimo ? COR_GALHO_FINAL : COR_GALHO;
+                contexto.fillRect(x, y, GALHO_LARGURA, GALHO_ALTURA);
+            }
+        }
+
+        // Desenha o gato no último galho com espelhamento
+        if (isUltimo && gatoCarregado) {
+            const xGato = x + GATO_OFFSET_X;
+            const yGato = y + GATO_OFFSET_Y;
+            contexto.save();
+            if (ladoGalho === "esquerda") {
+                contexto.translate(xGato + GATO_LARGURA, yGato);
+                contexto.scale(-1, 1);
+                contexto.drawImage(imgGato, 0, 0, GATO_LARGURA, GATO_ALTURA);
+            } else {
+                contexto.drawImage(imgGato, xGato, yGato, GATO_LARGURA, GATO_ALTURA);
+            }
+            contexto.restore();
         }
     }
 }

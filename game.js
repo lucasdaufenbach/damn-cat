@@ -7,9 +7,14 @@ const ARVORE_LARGURA = 40;
 const GALHO_LARGURA = 40;
 const GALHO_ALTURA = 20;
 const GALHO_OFFSET_X = 40;
+const GALHO_ESPACAMENTO = 70; // distância vertical entre galhos renderizados
+const MAX_GALHOS_VISIVEIS = 8; // quantos galhos mostramos no "viewport"
 const LENHADOR_LARGURA = 40;
 const LENHADOR_ALTURA = 40;
 const LENHADOR_Y_OFFSET = 60; // distância do lenhador ao chão
+const COR_GALHO = "green";
+const COR_GALHO_FINAL = "#ffd166";
+const COR_GALHO_FINAL_BORDA = "#cc9a1b";
 
 // Posições calculadas dinamicamente
 let ARVORE_X = 0;
@@ -24,7 +29,8 @@ let lenhador = {
     xAlvo: 0
 };
 
-let galhos = ["esquerda","direita","esquerda","esquerda","direita"];
+let galhos = [];
+let catIndex = 0; // índice do galho final (gato)
 
 let fase = 1;
 let pontosTotal = 0;
@@ -36,7 +42,16 @@ let tempoRestante = 10;
 let jogoAcabou = false;
 let faseCompleta = false;
 
-const GALHOS_POR_FASE = 5;
+const GALHOS_POR_FASE = 9;
+
+
+function resetGalhos() {
+    galhos = [];
+    for (let i = 0; i < GALHOS_POR_FASE; i++) {
+        galhos.push(galhoAleatorio());
+    }
+    catIndex = 0; // o galho que será o último a ser cortado começa na base da fila
+}
 
 
 function centralizarElementos() {
@@ -58,6 +73,7 @@ function resizeCanvas() {
     centralizarElementos();
 }
 
+resetGalhos();
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
@@ -94,13 +110,17 @@ function galhoAleatorio() {
 
 
 function cortar() {
+    const cortandoCat = catIndex === galhos.length - 1;
     let galhoBaixo = galhos.pop();
     if (galhoBaixo === lenhador.lado) {
         jogoAcabou = true;
         if (window.ModalUI) window.ModalUI.showGameOver(reiniciarJogo);
         return;
     }
-    galhos.unshift(galhoAleatorio());
+    if (!cortandoCat) {
+        galhos.unshift(galhoAleatorio());
+        catIndex = Math.min(catIndex + 1, galhos.length - 1);
+    }
     pontosTotal++;
     pontosFase++;
     // adiciona um pouco de tempo ao cortar
@@ -120,6 +140,7 @@ function proximaFase() {
     tempoMaximo = Math.max(3, tempoMaximo - 1);
     tempoRestante = tempoMaximo;
     if (window.ModalUI) window.ModalUI.close();
+    resetGalhos();
 }
 
 
@@ -131,7 +152,7 @@ function reiniciarJogo() {
     tempoRestante = 10;
     jogoAcabou = false;
     faseCompleta = false;
-    galhos = ["esquerda","direita","esquerda","esquerda","direita"];
+    resetGalhos();
     if (window.ModalUI) window.ModalUI.close();
 }
 
@@ -155,15 +176,22 @@ function desenharArvore() {
 
 
 function desenharGalhos() {
-    contexto.fillStyle = "green";
     const margemBase = LENHADOR_ALTURA + LENHADOR_Y_OFFSET + 40; // reserva espaço perto do chão
-    const espacamento = (tela.height - margemBase) / galhos.length;
-    for (let i = 0; i < galhos.length; i++) {
-        let y = i * espacamento;
-        if (galhos[i] === "esquerda")
-            contexto.fillRect(GALHO_X_ESQUERDA, y, GALHO_LARGURA, GALHO_ALTURA);
-        else
-            contexto.fillRect(GALHO_X_DIREITA, y, GALHO_LARGURA, GALHO_ALTURA);
+    const visiveis = Math.min(galhos.length, MAX_GALHOS_VISIVEIS);
+    const startIndex = Math.max(0, galhos.length - visiveis);
+
+    for (let i = startIndex; i < galhos.length; i++) {
+        const idxNaTela = i - startIndex; // 0 é o mais baixo visível
+        const y = tela.height - margemBase - (visiveis - idxNaTela) * GALHO_ESPACAMENTO;
+        const isUltimo = i === catIndex; // galho especial (gato)
+        const x = galhos[i] === "esquerda" ? GALHO_X_ESQUERDA : GALHO_X_DIREITA;
+        contexto.fillStyle = isUltimo ? COR_GALHO_FINAL : COR_GALHO;
+        contexto.fillRect(x, y, GALHO_LARGURA, GALHO_ALTURA);
+        if (isUltimo) {
+            contexto.strokeStyle = COR_GALHO_FINAL_BORDA;
+            contexto.lineWidth = 2;
+            contexto.strokeRect(x - 2, y - 2, GALHO_LARGURA + 4, GALHO_ALTURA + 4);
+        }
     }
 }
 

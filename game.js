@@ -30,6 +30,9 @@ let lenhador = {
     xAlvo: 0
 };
 
+// Guarda o lado do golpe iniciado para evitar injustiça em toques rápidos
+let ladoGolpeEmAndamento = "esquerda";
+
 let galhos = [];
 let catIndex = 0; // índice do galho final (gato)
 
@@ -108,9 +111,13 @@ function moverLenhador(lado) {
     if (jogoAcabou || faseCompleta) return;
     lenhador.lado = lado;
     lenhador.xAlvo = lado === "esquerda" ? LENHADOR_X_ESQUERDA : LENHADOR_X_DIREITA;
-    SpriteLenhador.interromperGolpeSeAtivo(resolverCorte);
+    // Se já existe um golpe animando, finaliza-o usando o lado que estava em andamento
+    const ladoAnteriorDoGolpe = ladoGolpeEmAndamento;
+    SpriteLenhador.interromperGolpeSeAtivo(() => resolverCorte(ladoAnteriorDoGolpe));
+    // Inicia novo golpe travado no lado escolhido agora
+    ladoGolpeEmAndamento = lado;
     if (jogoAcabou || faseCompleta) return;
-    SpriteLenhador.iniciarGolpe(resolverCorte);
+    SpriteLenhador.iniciarGolpe(() => resolverCorte(ladoGolpeEmAndamento));
 }
 
 
@@ -119,10 +126,10 @@ function galhoAleatorio() {
 }
 
 
-function resolverCorte() {
+function resolverCorte(ladoDoGolpe = lenhador.lado) {
     const cortandoCat = catIndex === galhos.length - 1;
     let galhoBaixo = galhos.pop();
-    if (galhoBaixo === lenhador.lado) {
+    if (galhoBaixo === ladoDoGolpe) {
         entrarGameOver();
         return;
     }

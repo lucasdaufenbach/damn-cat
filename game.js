@@ -48,6 +48,165 @@ let gatoCarregado = false;
 imgGato.onload = () => { gatoCarregado = true; };
 imgGato.src = IMG_GATO_SRC;
 
+
+// Controle de carregamento
+let carregouTudo = false;
+let overlayLoading;
+let botaoIniciar;
+
+function criarOverlayCarregamento() {
+    overlayLoading = document.createElement("div");
+    overlayLoading.style.position = "fixed";
+    overlayLoading.style.inset = "0";
+    overlayLoading.style.background = "linear-gradient(180deg, #4fa3ff 0%, #1f6ad6 100%)";
+    overlayLoading.style.display = "flex";
+    overlayLoading.style.flexDirection = "column";
+    overlayLoading.style.alignItems = "center";
+    overlayLoading.style.justifyContent = "center";
+    overlayLoading.style.color = "#fff";
+    overlayLoading.style.fontFamily = "Arial, sans-serif";
+    overlayLoading.style.textAlign = "center";
+    overlayLoading.style.padding = "20px";
+    overlayLoading.style.zIndex = "10";
+
+    const titulo = document.createElement("h1");
+    titulo.textContent = "Missão Lenhador";
+    titulo.style.margin = "0 0 12px";
+
+    const texto = document.createElement("p");
+    texto.textContent = "O gatinho da vizinha subiu em uma árvore gigante. É preciso resgatá-lo, mas você só conhece uma forma de chegar ao topo da árvore... Cuidado com os galhos!";
+    texto.style.maxWidth = "640px";
+    texto.style.margin = "0 0 16px";
+    texto.style.lineHeight = "1.4";
+
+    const barra = document.createElement("div");
+    barra.style.width = "260px";
+    barra.style.height = "10px";
+    barra.style.borderRadius = "6px";
+    barra.style.background = "rgba(255,255,255,0.25)";
+    barra.style.overflow = "hidden";
+    barra.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
+
+    const barraInterna = document.createElement("div");
+    barraInterna.style.height = "100%";
+    barraInterna.style.width = "0%";
+    barraInterna.style.background = "#ffd166";
+    barraInterna.style.transition = "width 0.2s ease";
+    barraInterna.id = "barra-loading-interna";
+    barra.appendChild(barraInterna);
+
+    botaoIniciar = document.createElement("button");
+    botaoIniciar.textContent = "Madeira!";
+    botaoIniciar.style.marginTop = "18px";
+    botaoIniciar.style.padding = "12px 20px";
+    botaoIniciar.style.border = "none";
+    botaoIniciar.style.borderRadius = "8px";
+    botaoIniciar.style.background = "#ffd166";
+    botaoIniciar.style.color = "#1f2a44";
+    botaoIniciar.style.fontWeight = "bold";
+    botaoIniciar.style.cursor = "pointer";
+    botaoIniciar.disabled = true;
+    botaoIniciar.style.opacity = "0.6";
+
+    overlayLoading.appendChild(titulo);
+    overlayLoading.appendChild(texto);
+    overlayLoading.appendChild(barra);
+    overlayLoading.appendChild(botaoIniciar);
+    document.body.appendChild(overlayLoading);
+}
+
+function atualizarLoading(progresso) {
+    const barraInterna = document.getElementById("barra-loading-interna");
+    if (barraInterna) {
+        barraInterna.style.width = `${Math.floor(progresso * 100)}%`;
+    }
+}
+
+function finalizarLoading() {
+    if (overlayLoading) {
+        overlayLoading.remove();
+        overlayLoading = null;
+    }
+    carregouTudo = true;
+}
+
+function carregarAssetsIniciais() {
+    criarOverlayCarregamento();
+
+    const assets = [
+        imgTronco,
+        imgGalho,
+        imgGato,
+        imgCenarioDesktop,
+        imgCenarioMobile,
+    ];
+
+    let carregados = 0;
+    const total = assets.length;
+
+    return new Promise((resolve) => {
+        assets.forEach((img) => {
+            if (img.complete && img.naturalWidth > 0) {
+                carregados++;
+                atualizarLoading(carregados / total);
+                if (carregados === total) {
+                    if (botaoIniciar) {
+                        botaoIniciar.disabled = false;
+                        botaoIniciar.style.opacity = "1";
+                        botaoIniciar.addEventListener("click", () => {
+                            finalizarLoading();
+                            resolve();
+                        }, { once: true });
+                    } else {
+                        finalizarLoading();
+                        resolve();
+                    }
+                }
+                return;
+            }
+
+            const onLoad = () => {
+                carregados++;
+                atualizarLoading(carregados / total);
+                if (carregados === total) {
+                    if (botaoIniciar) {
+                        botaoIniciar.disabled = false;
+                        botaoIniciar.style.opacity = "1";
+                        botaoIniciar.addEventListener("click", () => {
+                            finalizarLoading();
+                            resolve();
+                        }, { once: true });
+                    } else {
+                        finalizarLoading();
+                        resolve();
+                    }
+                }
+            };
+
+            const onError = () => {
+                carregados++;
+                atualizarLoading(carregados / total);
+                if (carregados === total) {
+                    if (botaoIniciar) {
+                        botaoIniciar.disabled = false;
+                        botaoIniciar.style.opacity = "1";
+                        botaoIniciar.addEventListener("click", () => {
+                            finalizarLoading();
+                            resolve();
+                        }, { once: true });
+                    } else {
+                        finalizarLoading();
+                        resolve();
+                    }
+                }
+            };
+
+            img.addEventListener("load", onLoad, { once: true });
+            img.addEventListener("error", onError, { once: true });
+        });
+    });
+}
+
 // Cenarios (desktop e mobile)
 const imgCenarioDesktop = new Image();
 const imgCenarioMobile = new Image();
@@ -364,5 +523,7 @@ function loopDoJogo() {
     desenhar();
     requestAnimationFrame(loopDoJogo);
 }
-
-loopDoJogo();
+carregarAssetsIniciais().then(() => {
+    if (!carregouTudo) finalizarLoading();
+    loopDoJogo();
+});

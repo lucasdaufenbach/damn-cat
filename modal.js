@@ -1,8 +1,8 @@
-// Modal helper for game over and phase complete overlays
-(function attachModalUI() {
+// Componente simples de modal para fim de jogo e troca de fase
+(function anexarModalJogo() {
   const style = document.createElement("style");
   style.textContent = `
-    .game-modal {
+    .modal-jogo {
       position: fixed;
       inset: 0;
       display: none;
@@ -11,8 +11,8 @@
       background: rgba(0, 0, 0, 0.6);
       z-index: 5;
     }
-    .game-modal.visible { display: flex; }
-    .game-modal__box {
+    .modal-jogo.visivel { display: flex; }
+    .modal-jogo__caixa {
       background: #fff;
       padding: 20px 24px;
       border-radius: 12px;
@@ -22,23 +22,23 @@
       text-align: center;
       font-family: Arial, sans-serif;
     }
-    .game-modal__title {
+    .modal-jogo__titulo {
       margin: 0 0 8px;
       font-size: 28px;
       color: #222;
     }
-    .game-modal__subtitle {
+    .modal-jogo__subtitulo {
       margin: 0 0 16px;
       font-size: 16px;
       color: #444;
     }
-    .game-modal__actions {
+    .modal-jogo__acoes {
       display: flex;
       gap: 10px;
       justify-content: center;
       flex-wrap: wrap;
     }
-    .game-modal__btn {
+    .modal-jogo__botao {
       padding: 12px 18px;
       font-size: 16px;
       color: #fff;
@@ -48,28 +48,28 @@
       cursor: pointer;
       min-width: 140px;
     }
-    .game-modal__btn--danger { background: #ff5959; }
-    .game-modal__btn--primary { background: #4caf50; }
-    .game-modal__btn:active { transform: translateY(1px); }
+    .modal-jogo__botao--perigo { background: #ff5959; }
+    .modal-jogo__botao--primario { background: #4caf50; }
+    .modal-jogo__botao:active { transform: translateY(1px); }
   `;
   document.head.appendChild(style);
 
   const modal = document.createElement("div");
-  modal.className = "game-modal";
+  modal.className = "modal-jogo";
   modal.setAttribute("role", "dialog");
   modal.setAttribute("aria-modal", "true");
 
   const box = document.createElement("div");
-  box.className = "game-modal__box";
+  box.className = "modal-jogo__caixa";
 
   const title = document.createElement("h1");
-  title.className = "game-modal__title";
+  title.className = "modal-jogo__titulo";
 
   const subtitle = document.createElement("p");
-  subtitle.className = "game-modal__subtitle";
+  subtitle.className = "modal-jogo__subtitulo";
 
   const actions = document.createElement("div");
-  actions.className = "game-modal__actions";
+  actions.className = "modal-jogo__acoes";
 
   box.appendChild(title);
   box.appendChild(subtitle);
@@ -77,50 +77,50 @@
   modal.appendChild(box);
   document.body.appendChild(modal);
 
-  function openModal({ modalTitle, modalSubtitle = "", buttons }) {
-    title.textContent = modalTitle;
-    subtitle.textContent = modalSubtitle;
+  function abrirModal({ tituloModal, subtituloModal = "", botoes }) {
+    title.textContent = tituloModal;
+    subtitle.textContent = subtituloModal;
 
     // clear previous buttons
     while (actions.firstChild) actions.removeChild(actions.firstChild);
 
-    buttons.forEach(({ label, kind, onClick }) => {
+    botoes.forEach(({ rotulo, variante, aoClicar }) => {
       const btn = document.createElement("button");
-      btn.className = `game-modal__btn ${kind === "danger" ? "game-modal__btn--danger" : "game-modal__btn--primary"}`;
-      btn.textContent = label;
+      btn.className = `modal-jogo__botao ${variante === "perigo" ? "modal-jogo__botao--perigo" : "modal-jogo__botao--primario"}`;
+      btn.textContent = rotulo;
       btn.addEventListener("click", () => {
-        closeModal();
-        if (typeof onClick === "function") onClick();
+        fecharModal();
+        if (typeof aoClicar === "function") aoClicar();
       });
       actions.appendChild(btn);
     });
 
-    modal.classList.add("visible");
+    modal.classList.add("visivel");
   }
 
-  function closeModal() {
-    modal.classList.remove("visible");
+  function fecharModal() {
+    modal.classList.remove("visivel");
   }
 
-  window.ModalUI = {
-    showGameOver(onRestart) {
-      openModal({
-        modalTitle: "FIM DE JOGO",
-        modalSubtitle: "",
-        buttons: [
-          { label: "Reiniciar", kind: "danger", onClick: onRestart }
+  window.ModalJogo = {
+    mostrarFimDeJogo(aoReiniciar) {
+      abrirModal({
+        tituloModal: "FIM DE JOGO",
+        subtituloModal: "",
+        botoes: [
+          { rotulo: "Reiniciar", variante: "perigo", aoClicar: aoReiniciar }
         ]
       });
     },
-    showPhaseComplete(onNext) {
-      openModal({
-        modalTitle: "FASE COMPLETA!",
-        modalSubtitle: "",
-        buttons: [
-          { label: "Próxima fase", kind: "primary", onClick: onNext }
+    mostrarFimDeFase(aoProximaFase) {
+      abrirModal({
+        tituloModal: "FASE COMPLETA!",
+        subtituloModal: "",
+        botoes: [
+          { rotulo: "Próxima fase", variante: "primario", aoClicar: aoProximaFase }
         ]
       });
     },
-    close: closeModal
+    fechar: fecharModal
   };
 })();

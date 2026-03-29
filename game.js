@@ -9,12 +9,13 @@ const GALHO_ALTURA = 20;
 const GALHO_OFFSET_X = 40;
 const GALHO_ESPACAMENTO = 70; // distância vertical entre galhos renderizados
 const MAX_GALHOS_VISIVEIS = 8; // quantos galhos mostramos no "viewport"
-const LENHADOR_LARGURA = 40;
-const LENHADOR_ALTURA = 40;
+const LENHADOR_LARGURA = 120; // 3x maior
+const LENHADOR_ALTURA = 120;  // 3x maior
 const LENHADOR_Y_OFFSET = 60; // distância do lenhador ao chão
 const COR_GALHO = "green";
 const COR_GALHO_FINAL = "#ffd166";
 const COR_GALHO_FINAL_BORDA = "#cc9a1b";
+const TEMPO_FRAME_GOLPE = 100; // ms por frame do golpe
 
 // Posições calculadas dinamicamente
 let ARVORE_X = 0;
@@ -42,8 +43,7 @@ let tempoRestante = 10;
 let jogoAcabou = false;
 let faseCompleta = false;
 
-const GALHOS_POR_FASE = 9;
-
+const GALHOS_POR_FASE = 20;
 
 function resetGalhos() {
     galhos = [];
@@ -52,6 +52,8 @@ function resetGalhos() {
     }
     catIndex = 0; // o galho que será o último a ser cortado começa na base da fila
 }
+
+// Controle de animação do lenhador vem do módulo SpriteLenhador
 
 
 function centralizarElementos() {
@@ -77,6 +79,11 @@ resetGalhos();
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
+// Inicializa sprites do lenhador
+SpriteLenhador.iniciar({
+    tempoFrame: TEMPO_FRAME_GOLPE,
+});
+
 
 document.addEventListener("keydown", (evento) => {
     if (jogoAcabou || faseCompleta) return;
@@ -98,9 +105,12 @@ tela.addEventListener("pointerdown", (evento) => {
 
 
 function moverLenhador(lado) {
+    if (jogoAcabou || faseCompleta) return;
     lenhador.lado = lado;
     lenhador.xAlvo = lado === "esquerda" ? LENHADOR_X_ESQUERDA : LENHADOR_X_DIREITA;
-    cortar();
+    SpriteLenhador.interromperGolpeSeAtivo(resolverCorte);
+    if (jogoAcabou || faseCompleta) return;
+    SpriteLenhador.iniciarGolpe(resolverCorte);
 }
 
 
@@ -109,12 +119,11 @@ function galhoAleatorio() {
 }
 
 
-function cortar() {
+function resolverCorte() {
     const cortandoCat = catIndex === galhos.length - 1;
     let galhoBaixo = galhos.pop();
     if (galhoBaixo === lenhador.lado) {
-        jogoAcabou = true;
-        if (window.ModalUI) window.ModalUI.showGameOver(reiniciarJogo);
+        entrarGameOver();
         return;
     }
     if (!cortandoCat) {
@@ -128,8 +137,16 @@ function cortar() {
     if (tempoRestante > tempoMaximo) tempoRestante = tempoMaximo;
     if (pontosFase >= GALHOS_POR_FASE) {
         faseCompleta = true;
-        if (window.ModalUI) window.ModalUI.showPhaseComplete(proximaFase);
+        SpriteLenhador.resetarEstado();
+        if (window.ModalJogo) window.ModalJogo.mostrarFimDeFase(proximaFase);
     }
+}
+
+function entrarGameOver() {
+    if (jogoAcabou) return;
+    jogoAcabou = true;
+    SpriteLenhador.entrarDerrota();
+    if (window.ModalJogo) window.ModalJogo.mostrarFimDeJogo(reiniciarJogo);
 }
 
 
@@ -139,7 +156,8 @@ function proximaFase() {
     faseCompleta = false;
     tempoMaximo = Math.max(3, tempoMaximo - 1);
     tempoRestante = tempoMaximo;
-    if (window.ModalUI) window.ModalUI.close();
+    SpriteLenhador.resetarEstado();
+    if (window.ModalJogo) window.ModalJogo.fechar();
     resetGalhos();
 }
 
@@ -152,8 +170,9 @@ function reiniciarJogo() {
     tempoRestante = 10;
     jogoAcabou = false;
     faseCompleta = false;
+    SpriteLenhador.resetarEstado();
     resetGalhos();
-    if (window.ModalUI) window.ModalUI.close();
+    if (window.ModalJogo) window.ModalJogo.fechar();
 }
 
 
@@ -162,8 +181,7 @@ function atualizar() {
     if (!jogoAcabou && !faseCompleta) {
         tempoRestante -= 0.016;
         if (tempoRestante <= 0) {
-            jogoAcabou = true;
-            if (window.ModalUI) window.ModalUI.showGameOver(reiniciarJogo);
+            entrarGameOver();
         }
     }
 }
@@ -197,9 +215,14 @@ function desenharGalhos() {
 
 
 function desenharLenhador() {
-    contexto.fillStyle = "red";
     const y = tela.height - LENHADOR_ALTURA - LENHADOR_Y_OFFSET;
-    contexto.fillRect(lenhador.x, y, LENHADOR_LARGURA, LENHADOR_ALTURA);
+    SpriteLenhador.desenhar(contexto, {
+        x: lenhador.x,
+        y,
+        lado: lenhador.lado,
+        largura: LENHADOR_LARGURA,
+        altura: LENHADOR_ALTURA,
+    });
 }
 
 

@@ -20,6 +20,8 @@ const GATO_OFFSET_Y = -(GATO_ALTURA - GALHO_ALTURA) / 2;
 const COR_GALHO = "green";
 const COR_GALHO_FINAL = "#ffd166";
 const TEMPO_FRAME_GOLPE = 100; // ms por frame do golpe
+const IMG_CENARIO_DESKTOP = "img/cenario-desktop.webp";
+const IMG_CENARIO_MOBILE = "img/cenario-mobile.webp";
 const IMG_TRONCO_SRC = "img/tronco.webp";
 const IMG_GALHO_SRC = "img/galho.webp";
 const IMG_GATO_SRC = "img/gato.webp";
@@ -45,6 +47,16 @@ const imgGato = new Image();
 let gatoCarregado = false;
 imgGato.onload = () => { gatoCarregado = true; };
 imgGato.src = IMG_GATO_SRC;
+
+// Cenarios (desktop e mobile)
+const imgCenarioDesktop = new Image();
+const imgCenarioMobile = new Image();
+let cenarioDesktopCarregado = false;
+let cenarioMobileCarregado = false;
+imgCenarioDesktop.onload = () => { cenarioDesktopCarregado = true; };
+imgCenarioMobile.onload = () => { cenarioMobileCarregado = true; };
+imgCenarioDesktop.src = IMG_CENARIO_DESKTOP;
+imgCenarioMobile.src = IMG_CENARIO_MOBILE;
 
 // Posições calculadas dinamicamente
 let ARVORE_X = 0;
@@ -235,6 +247,32 @@ function desenharArvore() {
     }
 }
 
+function obterCenarioAtual() {
+    const isMobile = window.innerWidth <= 768;
+    return {
+        img: isMobile ? imgCenarioMobile : imgCenarioDesktop,
+        carregado: isMobile ? cenarioMobileCarregado : cenarioDesktopCarregado,
+    };
+}
+
+function desenharCenario() {
+    const { img, carregado } = obterCenarioAtual();
+    if (!carregado || !img.naturalWidth || !img.naturalHeight) {
+        // fallback simples
+        contexto.fillStyle = "#87CEEB";
+        contexto.fillRect(0, 0, tela.width, tela.height);
+        return;
+    }
+
+    // Cobrir toda a tela mantendo proporção (efeito cover)
+    const escala = Math.max(tela.width / img.naturalWidth, tela.height / img.naturalHeight);
+    const larguraDesenho = img.naturalWidth * escala;
+    const alturaDesenho = img.naturalHeight * escala;
+    const offsetX = (tela.width - larguraDesenho) / 2;
+    const offsetY = (tela.height - alturaDesenho) / 2;
+    contexto.drawImage(img, offsetX, offsetY, larguraDesenho, alturaDesenho);
+}
+
 
 function desenharGalhos() {
     const margemBase = LENHADOR_ALTURA + LENHADOR_Y_OFFSET + 40; // reserva espaço perto do chão
@@ -313,6 +351,7 @@ function desenharUI() {
 
 function desenhar() {
     contexto.clearRect(0, 0, tela.width, tela.height);
+    desenharCenario();
     desenharArvore();
     desenharGalhos();
     desenharLenhador();

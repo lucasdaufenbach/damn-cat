@@ -1,9 +1,9 @@
 // Gerencia sprites e animações do lenhador em um único módulo
 (() => {
-  const IMG_LENHADOR_INICIO = "img/inicio-direita.png";
-  const IMG_LENHADOR_DERROTA = "img/gameover-direita.png";
-  const IMG_CORTE_1 = "img/corte-1-esquerda.png"; // orientada para a esquerda
-  const IMG_CORTE_2 = "img/corte-2-direita.png";  // orientada para a direita
+    const IMG_LENHADOR_INICIO = "img/inicio-direita.webp";
+    const IMG_LENHADOR_DERROTA = "img/gameover-direita.webp";
+    const IMG_CORTE_1 = "img/corte-1-esquerda.webp"; // orientada para a esquerda
+    const IMG_CORTE_2 = "img/corte-2-direita.webp";  // orientada para a direita
 
   let tempoFrameGolpe = 100;
 

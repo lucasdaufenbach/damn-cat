@@ -20,11 +20,17 @@ const GATO_OFFSET_Y = -(GATO_ALTURA - GALHO_ALTURA) / 2;
 const COR_GALHO = "green";
 const COR_GALHO_FINAL = "#ffd166";
 const TEMPO_FRAME_GOLPE = 100; // ms por frame do golpe
+// Progressão de dificuldade
+const GALHOS_BASE = 10; // fase 1
+const GALHOS_INCREMENTO_POR_FASE = 5; // +5 por fase
+const TEMPO_POR_CORTE_BASE = 0.3; // fase 1
+const FATOR_TEMPO_DECREMENTO = 0.1; // cada fase reduz 10% do ganho de tempo
 const IMG_CENARIO_DESKTOP = "img/cenario-desktop.webp";
 const IMG_CENARIO_MOBILE = "img/cenario-mobile.webp";
 const IMG_TRONCO_SRC = "img/tronco.webp";
 const IMG_GALHO_SRC = "img/galho.webp";
 const IMG_GATO_SRC = "img/gato.webp";
+const IMG_HEROI_SRC = "img/heroi.webp";
 
 // Textura do tronco
 const imgTronco = new Image();
@@ -47,6 +53,12 @@ const imgGato = new Image();
 let gatoCarregado = false;
 imgGato.onload = () => { gatoCarregado = true; };
 imgGato.src = IMG_GATO_SRC;
+
+// Herói para modal de vitória
+const imgHeroi = new Image();
+let heroiCarregado = false;
+imgHeroi.onload = () => { heroiCarregado = true; };
+imgHeroi.src = IMG_HEROI_SRC;
 
 
 // Controle de carregamento
@@ -139,6 +151,7 @@ function carregarAssetsIniciais() {
         imgGato,
         imgCenarioDesktop,
         imgCenarioMobile,
+        imgHeroi,
     ];
 
     let carregados = 0;
@@ -246,11 +259,19 @@ let tempoRestante = 10;
 let jogoAcabou = false;
 let faseCompleta = false;
 
-const GALHOS_POR_FASE = 3;
+function galhosNecessarios() {
+    return GALHOS_BASE + (fase - 1) * GALHOS_INCREMENTO_POR_FASE;
+}
+
+function incrementoTempoPorCorte() {
+    const fator = Math.max(0, 1 - FATOR_TEMPO_DECREMENTO * (fase - 1));
+    return TEMPO_POR_CORTE_BASE * fator;
+}
 
 function resetGalhos() {
     galhos = [];
-    for (let i = 0; i < GALHOS_POR_FASE; i++) {
+    const totalGalhos = galhosNecessarios();
+    for (let i = 0; i < totalGalhos; i++) {
         galhos.push(galhoAleatorio());
     }
     catIndex = 0; // o galho que será o último a ser cortado começa na base da fila
@@ -339,10 +360,10 @@ function resolverCorte(ladoDoGolpe = lenhador.lado) {
     }
     pontosTotal++;
     pontosFase++;
-    // adiciona um pouco de tempo ao cortar
-    tempoRestante += 0.3;
+    // adiciona tempo ajustado pela fase
+    tempoRestante += incrementoTempoPorCorte();
     if (tempoRestante > tempoMaximo) tempoRestante = tempoMaximo;
-    if (pontosFase >= GALHOS_POR_FASE) {
+    if (pontosFase >= galhosNecessarios()) {
         faseCompleta = true;
         SpriteLenhador.resetarEstado();
         if (window.ModalJogo) window.ModalJogo.mostrarFimDeFase(proximaFase);

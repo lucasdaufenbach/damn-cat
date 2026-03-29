@@ -1,5 +1,6 @@
 // Componente simples de modal para fim de jogo e troca de fase
 (function anexarModalJogo() {
+  const HERO_IMG_SRC = "img/heroi.webp";
   const style = document.createElement("style");
   style.textContent = `
     .modal-jogo {
@@ -106,6 +107,13 @@
   `;
   document.head.appendChild(style);
 
+  // Pré-carrega a imagem do herói para o modal de vitória
+  const heroiPreload = new Image();
+  heroiPreload.src = HERO_IMG_SRC;
+  if (heroiPreload.decode) {
+    heroiPreload.decode().catch(() => {});
+  }
+
   const modal = document.createElement("div");
   modal.className = "modal-jogo";
   modal.setAttribute("role", "dialog");
@@ -192,7 +200,7 @@
       abrirModal({
         tituloModal: "",
         subtituloModal: "",
-        imagemSrc: "img/heroi.webp",
+        imagemSrc: HERO_IMG_SRC,
         modoWin: true,
         botoes: [
           { rotulo: "Próxima fase", variante: "primario", aoClicar: aoProximaFase }
